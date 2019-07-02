@@ -1,0 +1,93 @@
+---
+title: "milestone"
+author: "Douglas"
+date: "June 29, 2019"
+output: html_document
+---
+
+```{r}
+library(readxl)
+library(tidyverse)
+pvr <- read_excel("/Users/dearm/Documents/police-violencereport-2017.xlsx")
+
+```
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Introduction
+
+
+##The Data
+The data set that I will be pulling from is a study done on mapping police violence, using data collected from 2017, found at<https://policeviolencereport.org/>.
+
+
+
+```{r pvr}
+head(pvr, 10)
+```
+
+##Cleaning the data
+There were some columns that I opted to remove, such as the weblink, victim's name, and 3 others.  I thought that creating a new column called, "address" would help consolidate the data, rather than have it spread over multiple columns. The column names were a bit cumbersome, with spaces, underscores and punctuation, so many were abbreviated to be more manageable.  Consistency was needed across the variables so they were changed to lowercase, so that when manipulated they showed a more accurate representation. 
+
+```{r}
+#removing unwanted columns
+pvr1 <- pvr[,-c(1,5,11,15,30)]
+
+#combine columns for address
+pvr1<- unite(pvr1, Address, c('Street Address of Incident', 'City', 'State', 'Zipcode'), sep = ' ', remove = TRUE)
+pvr1 <-pvr1[,-c(14)]
+
+#renaming cols
+colnames(pvr1) <- c("Vage","Vgen", "Vrace","date", "Address", "Agency","COD","ChargesO","Mental","Unarmed","Allwep","Allthreat","Fleeing","Allcrime", "Suspoff","Pname","Prace",  "Years", "Prevsht", "Time", "Video")
+#manipulating variables for possible comparision
+pvr1$fleeing <- ifelse(pvr1$'Fleeing'%in% c("Not fleeing"),
+                       "Not fleeing",
+                       "Fleeing")
+
+
+
+pvr1$Suspoff<- tolower(pvr1$Suspoff)
+pvr1$Vrace<- tolower(pvr1$Vrace)
+
+pvr1$Vage <- ifelse(pvr1$Vage == "Unknown", NA, pvr1$Vage)
+pvr1$Vage <- ifelse(pvr1$Vage == "40s", 45, pvr1$Vage)
+pvr1$Vage<- as.numeric(pvr1$Vage)
+
+head(pvr1,5)
+
+```
+
+
+## Plotting the data
+
+Once the data was more manageable, I started looking for any basic correlations or easily identifiable  variables of significance. The data proved to show some interesting answers to some questions that many have asked as of late. One of the most telling, in my opinion was that, given the data provided, it doesn't seem that race is as much a factor as people would argue, on the surface. 
+
+##Looking at race
+
+```{r , echo=FALSE}
+library(ggplot2)
+ggplot(pvr1, aes(x = fleeing  ))+ geom_bar()+
+  facet_wrap(~`Vrace`)
+ggplot(pvr1, aes(x = Vrace))+
+   geom_bar()+
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Looking closer at multiple factors
+
+```{r, echo=TRUE}
+#better look at info
+ggplot(pvr1, aes(x = Suspoff, fill = Vrace))+
+  geom_bar(position = 'fill')+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(pvr1, aes(x = Vage))+
+   geom_histogram(binwidth = 5, color = 'black', fill = 'purple' )+
+  scale_x_continuous(breaks=seq(0,100, 5))
+
+```
